@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install dependencies
+        run: go mod tidy
+
+      - name: Run tests
+        run: go test ./... -v
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: |
+            run --timeout=5m \
+              --enable=errcheck \
+              --enable=gofmt \
+              --enable=errorlint \
+              --enable=gocritic \
+              --enable=gocyclo \
+              --enable=gocognit \
+              --enable=revive \
+              --enable=gosec \
+              --enable=govet \
+              --enable=ineffassign \
+              --enable=staticcheck \
+              --enable=nakedret \
+              --enable=wsl
