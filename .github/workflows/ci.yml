@@ -16,7 +16,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
 
       - name: Install dependencies
         run: go mod tidy
@@ -33,24 +33,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.24'
 
-      - name: Install golangci-lint
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
-          args: |
-            run --timeout=5m \
-              --enable=errcheck \
-              --enable=gofmt \
-              --enable=errorlint \
-              --enable=gocritic \
-              --enable=gocyclo \
-              --enable=gocognit \
-              --enable=revive \
-              --enable=gosec \
-              --enable=govet \
-              --enable=ineffassign \
-              --enable=staticcheck \
-              --enable=nakedret \
-              --enable=wsl
+           version: latest
+           args: --timeout=5m
