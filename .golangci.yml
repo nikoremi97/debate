@@ -2,13 +2,10 @@ run:
   timeout: 120s
   tests: true
 
-formatters:
-  enable:
-    - gofmt
-    - goimports
 
 linters:
   enable:
+    - goimports
     - errcheck
     - gofmt
     - errorlint
