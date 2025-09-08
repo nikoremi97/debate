@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/nikoremi97/debate/internal/bot"
 	"github.com/nikoremi97/debate/internal/models"
 	"github.com/nikoremi97/debate/internal/storage"
+	"github.com/oklog/ulid/v2"
 )
 
 func RegisterRoutes(r *gin.Engine, store storage.Store, engine bot.Engine) {
 	r.POST("/chat", handleChat(store, engine))
+	RegisterConversationRoutes(r, store)
 }
 
 func handleChat(store storage.Store, engine bot.Engine) gin.HandlerFunc {
@@ -62,7 +63,7 @@ func handleChat(store storage.Store, engine bot.Engine) gin.HandlerFunc {
 func getOrCreateConversation(ctx context.Context, store storage.Store, conversationID *string) (*models.Conversation, error) {
 	if conversationID == nil || *conversationID == "" {
 		// start a new conversation
-		conv := models.NewConversation(uuid.NewString())
+		conv := models.NewConversation(ulid.Make().String())
 		conv.Topic, conv.Stance = bot.PickTopicAndStance()
 
 		return conv, nil

@@ -12,6 +12,7 @@
 *.test
 *.out
 go.work
+vendor/
 
 # IDE files
 .vscode/
