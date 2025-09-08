@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/nikoremi97/debate/internal/models"
@@ -77,9 +78,11 @@ func (s *PostgresStore) SaveConversation(ctx context.Context, c *models.Conversa
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
+
 	defer func() {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			// Log rollback error but don't return it to avoid masking the original error
+			log.Printf("Failed to rollback transaction: %v", rollbackErr)
 		}
 	}()
 

@@ -34,39 +34,16 @@ func RegisterConversationRoutes(r *gin.Engine, store storage.Store) {
 // listConversations handles GET /conversations
 func listConversations(store storage.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Parse query parameters
-		limitStr := c.DefaultQuery("limit", "20")
-		offsetStr := c.DefaultQuery("offset", "0")
+		limit, offset := parsePaginationParams(c)
 
-		limit, err := strconv.Atoi(limitStr)
-		if err != nil || limit <= 0 || limit > 100 {
-			limit = 20
-		}
-
-		offset, err := strconv.Atoi(offsetStr)
-		if err != nil || offset < 0 {
-			offset = 0
-		}
-
-		// Get conversations from store
 		conversations, err := store.ListConversations(c.Request.Context(), limit, offset)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to list conversations: " + err.Error(),
-			})
+			handleListConversationsError(c, err)
 
 			return
 		}
 
-		// For now, we don't have a total count method, so we'll use the length
-		// In a real implementation, you'd want a separate method to get total count
-		total := len(conversations)
-		if len(conversations) == limit {
-			// If we got exactly the limit, there might be more
-			total = offset + len(conversations) + 1
-		} else {
-			total = offset + len(conversations)
-		}
+		total := calculateTotal(conversations, limit, offset)
 
 		response := ListConversationsResponse{
 			Conversations: conversations,
@@ -77,6 +54,38 @@ func listConversations(store storage.Store) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, response)
 	}
+}
+
+func parsePaginationParams(c *gin.Context) (int, int) {
+	limitStr := c.DefaultQuery("limit", "20")
+	offsetStr := c.DefaultQuery("offset", "0")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+
+	return limit, offset
+}
+
+func handleListConversationsError(c *gin.Context, err error) {
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error": "Failed to list conversations: " + err.Error(),
+	})
+}
+
+func calculateTotal(conversations []storage.ConversationSummary, limit, offset int) int {
+	if len(conversations) == limit {
+		// If we got exactly the limit, there might be more
+		return offset + len(conversations) + 1
+	}
+
+	return offset + len(conversations)
 }
 
 // getPopularTopics handles GET /conversations/topics
@@ -96,6 +105,7 @@ func getPopularTopics(store storage.Store) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to get popular topics: " + err.Error(),
 			})
+
 			return
 		}
 

@@ -79,6 +79,7 @@ func (m *memoryStore) ListConversations(_ context.Context, limit, offset int) ([
 			count++
 			continue
 		}
+
 		if len(conversations) >= limit {
 			break
 		}
