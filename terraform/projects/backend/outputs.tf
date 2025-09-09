@@ -29,7 +29,17 @@ output "load_balancer_zone_id" {
 # Application URL
 output "application_url" {
   description = "URL to access the Debate Chatbot application"
-  value       = "http://${module.ecs.load_balancer_dns}"
+  value       = module.cloudfront.cloudfront_url
+}
+
+output "api_url" {
+  description = "HTTPS URL of the API"
+  value       = module.cloudfront.cloudfront_url
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront distribution domain name"
+  value       = module.cloudfront.cloudfront_domain_name
 }
 
 # KMS Outputs

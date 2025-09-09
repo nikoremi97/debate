@@ -60,3 +60,11 @@ module "ecs" {
   region                      = var.region
   tags                        = local.tags
 }
+
+# CloudFront Distribution for HTTPS
+module "cloudfront" {
+  source = "./cloudfront"
+
+  alb_dns_name = module.ecs.load_balancer_dns
+  tags         = local.tags
+}
