@@ -1,15 +1,17 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Send, MessageSquare } from "lucide-react"
+import { Loader2, Send, MessageSquare, LogOut } from "lucide-react"
 import { config } from "@/lib/config"
 import ChatSidebar from "@/components/chat-sidebar"
+import { useApiKey } from "@/lib/use-api-key"
+import { ProtectedRoute } from "@/components/protected-route"
 
 // Types matching your backend API
 type Message = {
@@ -28,7 +30,7 @@ type ChatRequest = {
     message: string
 }
 
-export default function ChatPage() {
+function ChatContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const [messages, setMessages] = useState<Message[]>([])
@@ -41,6 +43,7 @@ export default function ChatPage() {
     const [sidebarRefreshTrigger, setSidebarRefreshTrigger] = useState(0)
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const scrollAreaRef = useRef<HTMLDivElement>(null)
+    const { apiKey, clearApiKey } = useApiKey()
 
     // Check for conversation_id in URL params
     useEffect(() => {
@@ -69,7 +72,14 @@ export default function ChatPage() {
             setIsLoading(true)
             setError(null)
 
-            const response = await fetch(`${config.apiUrl}/conversations/${id}`)
+            const headers: Record<string, string> = {}
+            if (apiKey) {
+                headers["X-API-Key"] = apiKey
+            }
+
+            const response = await fetch(`${config.apiUrl}/conversations/${id}`, {
+                headers
+            })
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
@@ -122,9 +132,14 @@ export default function ChatPage() {
                 requestBody.conversation_id = conversationId
             }
 
+            const headers: Record<string, string> = { "Content-Type": "application/json" }
+            if (apiKey) {
+                headers["X-API-Key"] = apiKey
+            }
+
             const res = await fetch(`${config.apiUrl}${config.endpoints.chat}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers,
                 body: JSON.stringify(requestBody),
             })
 
@@ -189,103 +204,134 @@ export default function ChatPage() {
 
 
     return (
-        <div className="flex h-[calc(100vh-73px)]">
-            {/* Sidebar */}
-            <ChatSidebar
-                currentConversationId={conversationId}
-                onNewChat={handleNewChat}
-                refreshTrigger={sidebarRefreshTrigger}
-                isOpen={sidebarOpen}
-                onToggle={toggleSidebar}
-            />
+        <ProtectedRoute>
+            <div className="flex h-[calc(100vh-73px)]">
+                {/* Sidebar */}
+                <ChatSidebar
+                    currentConversationId={conversationId}
+                    onNewChat={handleNewChat}
+                    refreshTrigger={sidebarRefreshTrigger}
+                    isOpen={sidebarOpen}
+                    onToggle={toggleSidebar}
+                />
 
-            {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col m-4 min-h-0 lg:ml-4">
-                <Card className="flex-1 flex flex-col min-h-0">
-                    <CardHeader className="pb-3 flex-shrink-0">
-                        <CardTitle className="flex items-center gap-2">
-                            <MessageSquare className="h-5 w-5" />
-                            Debate Chatbot
-                        </CardTitle>
-                        {topic && (
-                            <div className="flex gap-2 items-center">
-                                <Badge variant="outline">Topic: {topic}</Badge>
-                            </div>
-                        )}
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col min-h-0 p-4">
-                        <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4 min-h-0">
-                            <div className="space-y-4">
-                                {messages.length === 0 && (
-                                    <div className="text-center text-muted-foreground py-8">
-                                        <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                        <p>Start a debate! Send your first message to begin.</p>
-                                    </div>
-                                )}
-                                {messages.map((message, i) => (
-                                    <div
-                                        key={`${message.ts}-${i}`}
-                                        className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                                    >
+                {/* Main Chat Area */}
+                <div className="flex-1 flex flex-col m-4 min-h-0 lg:ml-4">
+                    <Card className="flex-1 flex flex-col min-h-0">
+                        <CardHeader className="pb-3 flex-shrink-0">
+                            <CardTitle className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <MessageSquare className="h-5 w-5" />
+                                    Debate Chatbot
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        clearApiKey()
+                                        router.push('/login')
+                                    }}
+                                    className="flex items-center gap-2"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    Logout
+                                </Button>
+                            </CardTitle>
+                            {topic && (
+                                <div className="flex gap-2 items-center">
+                                    <Badge variant="outline">Topic: {topic}</Badge>
+                                </div>
+                            )}
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col min-h-0 p-4">
+                            <ScrollArea ref={scrollAreaRef} className="flex-1 pr-4 min-h-0">
+                                <div className="space-y-4">
+                                    {messages.length === 0 && (
+                                        <div className="text-center text-muted-foreground py-8">
+                                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                            <p>Start a debate! Send your first message to begin.</p>
+                                        </div>
+                                    )}
+                                    {messages.map((message, i) => (
                                         <div
-                                            className={`max-w-[80%] rounded-lg p-3 ${message.role === "user"
-                                                ? "bg-primary text-primary-foreground"
-                                                : "bg-muted"
-                                                }`}
+                                            key={`${message.ts}-${i}`}
+                                            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                                         >
-                                            <div className="text-sm font-medium mb-1">
-                                                {message.role === "user" ? "You" : "Debate Bot"}
+                                            <div
+                                                className={`max-w-[80%] rounded-lg p-3 ${message.role === "user"
+                                                    ? "bg-primary text-primary-foreground"
+                                                    : "bg-muted"
+                                                    }`}
+                                            >
+                                                <div className="text-sm font-medium mb-1">
+                                                    {message.role === "user" ? "You" : "Debate Bot"}
+                                                </div>
+                                                <div className="whitespace-pre-wrap">{message.message}</div>
                                             </div>
-                                            <div className="whitespace-pre-wrap">{message.message}</div>
                                         </div>
-                                    </div>
-                                ))}
-                                {isLoading && (
-                                    <div className="flex justify-start">
-                                        <div className="bg-muted rounded-lg p-3 flex items-center gap-2">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span className="text-sm text-muted-foreground">Bot is thinking...</span>
+                                    ))}
+                                    {isLoading && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-muted rounded-lg p-3 flex items-center gap-2">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <span className="text-sm text-muted-foreground">Bot is thinking...</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        </ScrollArea>
+                                    )}
+                                </div>
+                            </ScrollArea>
 
-                        {error && (
-                            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                                <p className="text-sm text-destructive">{error}</p>
-                            </div>
-                        )}
+                            {error && (
+                                <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                                    <p className="text-sm text-destructive">{error}</p>
+                                </div>
+                            )}
 
 
-                        <form
-                            onSubmit={e => {
-                                e.preventDefault()
-                                sendMessage()
-                            }}
-                            className="flex gap-2 mt-4 flex-shrink-0"
-                        >
-                            <Input
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                placeholder="Type your debate argument..."
-                                disabled={isLoading}
-                                className="flex-1"
-                            />
-                            <Button
-                                type="submit"
-                                disabled={isLoading || !input.trim()}
+                            <form
+                                onSubmit={e => {
+                                    e.preventDefault()
+                                    sendMessage()
+                                }}
+                                className="flex gap-2 mt-4 flex-shrink-0"
                             >
-                                {isLoading ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Send className="h-4 w-4" />
-                                )}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+                                <Input
+                                    value={input}
+                                    onChange={e => setInput(e.target.value)}
+                                    placeholder="Type your debate argument..."
+                                    disabled={isLoading}
+                                    className="flex-1"
+                                />
+                                <Button
+                                    type="submit"
+                                    disabled={isLoading || !input.trim()}
+                                >
+                                    {isLoading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Send className="h-4 w-4" />
+                                    )}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
-        </div>
+        </ProtectedRoute>
+    )
+}
+
+export default function ChatPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-[calc(100vh-73px)] items-center justify-center">
+                <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading chat...</span>
+                </div>
+            </div>
+        }>
+            <ChatContent />
+        </Suspense>
     )
 }

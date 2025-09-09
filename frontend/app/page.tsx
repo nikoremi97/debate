@@ -20,9 +20,9 @@ export default function Home() {
             Engage in intelligent debates with an AI-powered chatbot that takes a stance and argues persuasively.
             Challenge your thinking and sharpen your argumentation skills.
           </p>
-          <Link href="/chat">
+          <Link href="/login">
             <Button size="lg" className="text-lg px-8 py-6">
-              Start Debating
+              Get Started
               <MessageSquare className="ml-2 h-5 w-5" />
             </Button>
           </Link>

@@ -16,7 +16,7 @@ BINARY_NAME=debate-chatbot-backend
 API_URL=http://debate-chatbot-alb-1114917533.us-east-2.elb.amazonaws.com
 API_KEY=your-secure-api-key-here
 
-.PHONY: make install run down clean test staging login build_image generate_binary push_image clean_binary test-api test-api-auth test-api-no-auth
+.PHONY: make install run down clean test staging login build_image generate_binary push_image clean_binary test-api test-api-auth test-api-no-auth deploy-frontend build-frontend
 
 make:
 	@echo "Available commands:"
@@ -33,22 +33,24 @@ make:
 	@echo "  make test-api       Test API health and readiness"
 	@echo "  make test-api-auth  Test API with authentication"
 	@echo "  make test-api-no-auth Test API without authentication (should fail)"
+	@echo "  make build-frontend Build the frontend application"
+	@echo "  make deploy-frontend Deploy frontend to S3 and invalidate CloudFront"
 
 install:
 	@which docker >/dev/null 2>&1 || { echo "Docker not found. Install Docker: https://docs.docker.com/get-docker/"; exit 1; }
-	@which docker-compose >/dev/null 2>&1 || { echo "docker-compose not found. Install: https://docs.docker.com/compose/install/"; exit 1; }
+	@docker compose version >/dev/null 2>&1 || { echo "docker compose not found. Install: https://docs.docker.com/compose/install/"; exit 1; }
 	@which go >/dev/null 2>&1 || { echo "Go not found. Install: https://go.dev/dl/"; exit 1; }
 	@which aws >/dev/null 2>&1 || { echo "AWS CLI not found. Install: https://aws.amazon.com/cli/"; exit 1; }
 	go mod tidy
 
 run:
-	docker-compose up --build
+	docker compose up --build
 
 down:
-	docker-compose down
+	docker compose down
 
 clean:
-	docker-compose down -v
+	docker compose down -v
 
 test:
 	go test ./...
@@ -110,3 +112,14 @@ test-api-no-auth:
 	@echo "2. Conversations endpoint without API key:"
 	@curl -s -X GET "$(API_URL)/conversations" | jq . || echo "Failed to connect"
 	@echo
+
+# Frontend Deployment Commands
+build-frontend:
+	@echo "=== Building Frontend Application ==="
+	@cd frontend && npm install
+	@cd frontend && npm run build
+	@echo "Frontend build completed successfully"
+
+deploy-frontend:
+	@echo "=== Deploying Frontend to S3 and CloudFront ==="
+	@./scripts/deploy-frontend.sh

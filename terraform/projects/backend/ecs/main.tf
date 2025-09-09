@@ -50,7 +50,7 @@ resource "aws_lb_target_group" "debate_api" {
     unhealthy_threshold = 2
     timeout             = 5
     interval            = 30
-    path                = "/healthz"
+    path                = "/health"
     matcher             = "200"
     port                = "traffic-port"
     protocol            = "HTTP"
@@ -153,7 +153,7 @@ resource "aws_ecs_service" "debate_api" {
   name            = "debate-api-service"
   cluster         = aws_ecs_cluster.debate_cluster.id
   task_definition = aws_ecs_task_definition.debate_api.arn
-  desired_count   = 2
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
