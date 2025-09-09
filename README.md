@@ -13,8 +13,10 @@ A full-stack debate chatbot application with API key authentication, built with 
 ## 🏗️ Architecture
 
 ```
-Frontend (Next.js) → CloudFront (HTTPS) → ALB → ECS (Go API) → PostgreSQL/Redis
+Frontend (Next.js) → CloudFront (HTTPS) → ALB (HTTP) → ECS (Go API) → PostgreSQL/Redis
 ```
+
+**HTTPS Solution**: CloudFront terminates HTTPS and communicates with ALB over HTTP internally. This prevents mixed content errors while keeping the setup simple.
 
 ## 🛠️ Quick Start
 

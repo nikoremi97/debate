@@ -38,19 +38,19 @@ make:
 
 install:
 	@which docker >/dev/null 2>&1 || { echo "Docker not found. Install Docker: https://docs.docker.com/get-docker/"; exit 1; }
-	@which docker-compose >/dev/null 2>&1 || { echo "docker-compose not found. Install: https://docs.docker.com/compose/install/"; exit 1; }
+	@docker compose version >/dev/null 2>&1 || { echo "docker compose not found. Install: https://docs.docker.com/compose/install/"; exit 1; }
 	@which go >/dev/null 2>&1 || { echo "Go not found. Install: https://go.dev/dl/"; exit 1; }
 	@which aws >/dev/null 2>&1 || { echo "AWS CLI not found. Install: https://aws.amazon.com/cli/"; exit 1; }
 	go mod tidy
 
 run:
-	docker-compose up --build
+	docker compose up --build
 
 down:
-	docker-compose down
+	docker compose down
 
 clean:
-	docker-compose down -v
+	docker compose down -v
 
 test:
 	go test ./...

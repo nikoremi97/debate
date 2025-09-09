@@ -33,7 +33,7 @@ API_KEY=your-actual-api-key-here
 ### Update API URL
 Edit the `API_URL` variable in the Makefile:
 ```makefile
-API_URL=https://your-api-domain.com
+API_URL=https://d13sbjy1c5yh6c.cloudfront.net
 ```
 
 ## What Each Command Tests
