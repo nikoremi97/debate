@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Key Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>API Key Authentication Test</h1>
+    <p>Test the API key authentication with the Debate Chatbot backend.</p>
+
+    <div class="form-group">
+        <label for="apiKey">API Key:</label>
+        <input type="password" id="apiKey" placeholder="Enter your API key">
+    </div>
+
+    <div class="form-group">
+        <label for="apiUrl">API URL:</label>
+        <input type="text" id="apiUrl"
+            value="https://d1234567890.cloudfront.net" placeholder="API URL">
+    </div>
+
+    <button onclick="testHealth()">Test Health Endpoint</button>
+    <button onclick="testChat()">Test Chat Endpoint</button>
+    <button onclick="testConversations()">Test Conversations Endpoint</button>
+
+    <div id="result"></div>
+
+    <script>
+        function getApiKey() {
+            return document.getElementById('apiKey').value.trim();
+        }
+
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value.trim();
+        }
+
+        function showResult(message, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = 'result ' + (isError ? 'error' : 'success');
+        }
+
+        async function testHealth() {
+            const apiKey = getApiKey();
+            const apiUrl = getApiUrl();
+
+            if (!apiKey) {
+                showResult('Please enter an API key', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/health`, {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Health check successful: ${JSON.stringify(data)}`);
+                } else {
+                    showResult(`❌ Health check failed: ${response.status} ${response.statusText}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, true);
+            }
+        }
+
+        async function testChat() {
+            const apiKey = getApiKey();
+            const apiUrl = getApiUrl();
+
+            if (!apiKey) {
+                showResult('Please enter an API key', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        message: 'Hello, let\'s debate about renewable energy!'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Chat test successful! Conversation ID: ${data.conversation_id}<br>Messages: ${data.message.length}`);
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Chat test failed: ${response.status} ${response.statusText}<br>Response: ${errorText}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, true);
+            }
+        }
+
+        async function testConversations() {
+            const apiKey = getApiKey();
+            const apiUrl = getApiUrl();
+
+            if (!apiKey) {
+                showResult('Please enter an API key', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/conversations?limit=10&offset=0`, {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Conversations test successful! Found ${data.conversations.length} conversations`);
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Conversations test failed: ${response.status} ${response.statusText}<br>Response: ${errorText}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Error: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+
+</html>
