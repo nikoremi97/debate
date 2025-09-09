@@ -58,8 +58,8 @@ terraform apply
 2. **Get your API key** from the administrator
 
 3. **Access the application:**
-- Frontend: https://your-cloudfront-url
-- Backend API: https://your-cloudfront-url
+- Frontend: https://d1iy0shli1spap.cloudfront.net
+- Backend API: https://d13sbjy1c5yh6c.cloudfront.net
 
 ## 🔑 Authentication
 
