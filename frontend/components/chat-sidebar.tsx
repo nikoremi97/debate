@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { MessageSquare, Clock, Hash, Plus, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { config } from "@/lib/config"
+import { useApiKey } from "@/lib/use-api-key"
 
 type ConversationSummary = {
     id: string
@@ -38,14 +39,21 @@ export default function ChatSidebar({ currentConversationId, onNewChat, refreshT
     const [conversations, setConversations] = useState<ConversationSummary[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const { apiKey } = useApiKey()
 
     const loadConversations = async () => {
         try {
             setLoading(true)
             setError(null)
 
+            const headers: Record<string, string> = {}
+            if (apiKey) {
+                headers["X-API-Key"] = apiKey
+            }
+
             const response = await fetch(
-                `${config.apiUrl}/conversations?limit=50&offset=0`
+                `${config.apiUrl}/conversations?limit=50&offset=0`,
+                { headers }
             )
 
             if (!response.ok) {

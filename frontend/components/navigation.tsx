@@ -2,9 +2,12 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, Home } from "lucide-react"
+import { MessageSquare, Home, LogIn } from "lucide-react"
+import { useApiKey } from "@/lib/use-api-key"
 
 export function Navigation() {
+    const { apiKey } = useApiKey()
+
     return (
         <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto px-4 py-3">
@@ -21,12 +24,21 @@ export function Navigation() {
                                 Home
                             </Button>
                         </Link>
-                        <Link href="/chat">
-                            <Button size="sm">
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Chat
-                            </Button>
-                        </Link>
+                        {apiKey ? (
+                            <Link href="/chat">
+                                <Button size="sm">
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    Chat
+                                </Button>
+                            </Link>
+                        ) : (
+                            <Link href="/login">
+                                <Button size="sm">
+                                    <LogIn className="h-4 w-4 mr-2" />
+                                    Login
+                                </Button>
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>
