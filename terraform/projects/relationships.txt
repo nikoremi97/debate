@@ -1,0 +1,9 @@
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   VPC Project   │    │  Backend Project│    │Database Project │
+│                 │    │                 │    │                 │
+│ • ALB SG        │───►│ • ECS Service   │    │ • Aurora PG     │
+│ • ECS Tasks SG  │    │ • Load Balancer │    │ • ElastiCache   │
+│ • Aurora SG     │    │                 │    │                 │
+│ • Valkey SG     │    │                 │    │                 │
+│ • DB Subnet Grp │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘

@@ -33,3 +33,23 @@ output "private_subnets_ids" {
 output "public_subnets_ids" {
   value = aws_subnet.public[*].id
 }
+
+output "ecs_tasks_security_group" {
+  value = aws_security_group.ecs_tasks
+}
+
+output "alb_security_group" {
+  value = aws_security_group.alb
+}
+
+output "valkey_security_group" {
+  value = aws_security_group.valkey
+}
+
+output "aurora_security_group" {
+  value = aws_security_group.aurora
+}
+
+output "db_subnet_group" {
+  value = aws_db_subnet_group.debate_db
+}
