@@ -92,3 +92,107 @@ func TestBuildMessages(t *testing.T) {
 		t.Fatalf("last message content should be %s, got %s", userMessage, lastMessage["content"])
 	}
 }
+
+func TestValidateTopic(t *testing.T) {
+	tests := []struct {
+		name     string
+		topic    string
+		expected bool
+	}{
+		{"Valid topic", "Climate change is real", true},
+		{"Valid topic with spaces", "  Remote work is better  ", true},
+		{"Empty topic", "", false},
+		{"Whitespace only", "   ", false},
+		{"Violence content", "Violence is good", false},
+		{"Sexual content", "Sex education in schools", false},
+		{"Hate content", "Racism is acceptable", false},
+		{"Drug content", "Drugs should be legal", false},
+		{"Illegal content", "Theft is justified", false},
+		{"Too long", "This is a very long topic that exceeds the reasonable length limit and should be rejected because it goes beyond the maximum allowed characters for a topic which is set to 200 characters to prevent abuse and ensure reasonable debate topics", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := ValidateTopic(tt.topic)
+			if result != tt.expected {
+				t.Errorf("ValidateTopic(%q) = %v, expected %v", tt.topic, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDetermineStance(t *testing.T) {
+	tests := []struct {
+		name     string
+		message  string
+		expected string
+	}{
+		{"Pro message", "I agree that climate change is real", "CON"},
+		{"Con message", "I disagree with remote work", "PRO"},
+		{"Pro keywords", "I support this idea and think it's good", "CON"},
+		{"Con keywords", "This is bad and I hate it", "PRO"},
+		{"Mixed message", "I think it's good but also bad", "CON"}, // proCount > conCount
+		{"Unclear message", "Maybe it depends", "CON"},             // default to CON
+		{"Empty message", "", "CON"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DetermineStance(tt.message)
+			if result != tt.expected {
+				t.Errorf("DetermineStance(%q) = %s, expected %s", tt.message, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestProcessUserTopic(t *testing.T) {
+	tests := []struct {
+		name           string
+		topic          string
+		message        string
+		expectedTopic  string
+		expectedStance string
+		expectFallback bool
+	}{
+		{"Valid topic with pro message", "Climate change is real", "I agree with this", "Climate change is real", "CON", false},
+		{"Valid topic with con message", "Remote work is better", "I disagree with this", "Remote work is better", "PRO", false},
+		{"Invalid topic", "Violence is good", "I support this", "", "PRO", true}, // fallback topic
+		{"Empty topic", "", "I agree", "", "PRO", true},                          // fallback topic
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			topic, stance := ProcessUserTopic(tt.topic, tt.message)
+
+			// Check topic
+			if tt.expectFallback {
+				assertValidFallbackTopic(t, topic, tt.topic, tt.message)
+			} else if topic != tt.expectedTopic {
+				t.Errorf("ProcessUserTopic(%q, %q) topic = %q, expected %q", tt.topic, tt.message, topic, tt.expectedTopic)
+			}
+
+			// Check stance
+			if stance != tt.expectedStance {
+				t.Errorf("ProcessUserTopic(%q, %q) stance = %q, expected %q", tt.topic, tt.message, stance, tt.expectedStance)
+			}
+		})
+	}
+}
+
+func assertValidFallbackTopic(t *testing.T, topic, inputTopic, inputMessage string) {
+	t.Helper()
+
+	validFallback := false
+
+	for _, fallback := range fallbackTopics {
+		if topic == fallback {
+			validFallback = true
+			break
+		}
+	}
+
+	if !validFallback {
+		t.Errorf("ProcessUserTopic(%q, %q) returned topic %q, expected a fallback topic", inputTopic, inputMessage, topic)
+	}
+}
