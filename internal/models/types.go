@@ -6,12 +6,15 @@ import "time"
 type ChatRequest struct {
 	ConversationID *string `json:"conversation_id"`
 	Message        string  `json:"message"` // text
+	Topic          *string `json:"topic"`   // optional user-provided topic
 }
 
 // ChatResponse is the outgoing API payload.
 type ChatResponse struct {
 	ConversationID string    `json:"conversation_id"`
 	Messages       []Message `json:"message"`
+	Topic          string    `json:"topic,omitempty"`
+	Stance         string    `json:"stance,omitempty"`
 }
 
 // Message is a single turn.

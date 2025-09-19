@@ -29,7 +29,7 @@ func handleChat(store storage.Store, engine bot.Engine) gin.HandlerFunc {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 25*time.Second) // keep under 30s
 		defer cancel()
 
-		conversation, err := getOrCreateConversation(ctx, store, req.ConversationID)
+		conversation, err := getOrCreateConversation(ctx, store, req.ConversationID, req.Topic, req.Message)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "conversation not found"})
 			return
@@ -54,32 +54,44 @@ func handleChat(store storage.Store, engine bot.Engine) gin.HandlerFunc {
 		resp := models.ChatResponse{
 			ConversationID: conversation.ID,
 			Messages:       conversation.LastN(10),
+			Topic:          conversation.Topic,
+			Stance:         conversation.Stance,
 		}
 
 		c.JSON(http.StatusOK, resp)
 	}
 }
 
-func getOrCreateConversation(ctx context.Context, store storage.Store, conversationID *string) (*models.Conversation, error) {
+func getOrCreateConversation(ctx context.Context, store storage.Store, conversationID *string, userTopic *string, userMessage string) (*models.Conversation, error) {
+	// Determine conversation ID
+	var convID string
 	if conversationID == nil || *conversationID == "" {
-		// start a new conversation
-		conv := models.NewConversation(ulid.Make().String())
-		conv.Topic, conv.Stance = bot.PickTopicAndStance()
-
-		return conv, nil
+		convID = ulid.Make().String()
+	} else {
+		convID = *conversationID
 	}
 
-	// try to get existing conversation
-	conv, err := store.GetConversation(ctx, *conversationID)
-	if err != nil {
-		// conversation doesn't exist, create a new one with the provided ID
-		conv = models.NewConversation(*conversationID)
-		conv.Topic, conv.Stance = bot.PickTopicAndStance()
-
-		return conv, nil
+	// Try to get existing conversation if we have a specific ID
+	if conversationID != nil && *conversationID != "" {
+		conv, err := store.GetConversation(ctx, *conversationID)
+		if err == nil {
+			return conv, nil
+		}
 	}
+
+	// Create new conversation
+	conv := models.NewConversation(convID)
+	setConversationTopicAndStance(conv, userTopic, userMessage)
 
 	return conv, nil
+}
+
+func setConversationTopicAndStance(conv *models.Conversation, userTopic *string, userMessage string) {
+	if userTopic != nil && *userTopic != "" {
+		conv.Topic, conv.Stance = bot.ProcessUserTopic(*userTopic, userMessage)
+	} else {
+		conv.Topic, conv.Stance = bot.PickTopicAndStance()
+	}
 }
 
 func generateBotReply(ctx context.Context, engine bot.Engine, conv *models.Conversation, userMessage string) (string, error) {

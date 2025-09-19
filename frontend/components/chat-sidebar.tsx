@@ -47,7 +47,8 @@ export default function ChatSidebar({ currentConversationId, onNewChat, refreshT
             setError(null)
 
             const headers: Record<string, string> = {}
-            if (apiKey) {
+            // Only send API key if we have one and we're not running locally
+            if (apiKey && !config.apiUrl.includes('localhost')) {
                 headers["X-API-Key"] = apiKey
             }
 
