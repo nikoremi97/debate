@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useApiKey } from "@/lib/use-api-key"
 import { Loader2 } from "lucide-react"
+import { config } from "@/lib/config"
 
 interface ProtectedRouteProps {
     children: React.ReactNode
@@ -13,11 +14,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const { apiKey, isLoading } = useApiKey()
     const router = useRouter()
 
+    // Allow access when running locally (no API key required)
+    const isLocalDevelopment = config.apiUrl.includes('localhost')
+
     useEffect(() => {
-        if (!isLoading && !apiKey) {
+        if (!isLoading && !apiKey && !isLocalDevelopment) {
             router.push("/login")
         }
-    }, [apiKey, isLoading, router])
+    }, [apiKey, isLoading, router, isLocalDevelopment])
 
     if (isLoading) {
         return (
@@ -30,7 +34,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         )
     }
 
-    if (!apiKey) {
+    if (!apiKey && !isLocalDevelopment) {
         return null // Will redirect to login
     }
 

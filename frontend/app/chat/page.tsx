@@ -23,11 +23,14 @@ type Message = {
 type ChatResponse = {
     conversation_id: string
     message: Message[]
+    topic?: string
+    stance?: string
 }
 
 type ChatRequest = {
     conversation_id?: string
     message: string
+    topic?: string
 }
 
 function ChatContent() {
@@ -54,6 +57,12 @@ function ChatContent() {
             loadConversation(urlConversationId)
             // Close sidebar on mobile when conversation is loaded
             setSidebarOpen(false)
+        } else {
+            // Clear conversation state when no conversation_id in URL
+            setConversationId(null)
+            setMessages([])
+            setTopic("")
+            setStance("")
         }
     }, [searchParams])
 
@@ -73,7 +82,8 @@ function ChatContent() {
             setError(null)
 
             const headers: Record<string, string> = {}
-            if (apiKey) {
+            // Only send API key if we have one and we're not running locally
+            if (apiKey && !config.apiUrl.includes('localhost')) {
                 headers["X-API-Key"] = apiKey
             }
 
@@ -122,6 +132,12 @@ function ChatContent() {
         setIsLoading(true)
         setError(null)
 
+        // Clear topic and stance for new conversations
+        if (!conversationId) {
+            setTopic("")
+            setStance("")
+        }
+
         try {
             const requestBody: ChatRequest = {
                 message: userMessage.message
@@ -132,8 +148,20 @@ function ChatContent() {
                 requestBody.conversation_id = conversationId
             }
 
+            // For new conversations, use the input message as the topic
+            if (!conversationId || conversationId === "") {
+                requestBody.topic = userMessage.message
+                console.log("Debug - Using input message as topic for new conversation:", userMessage.message)
+            } else {
+                // For existing conversations, don't send topic - let backend use existing topic
+                console.log("Debug - Existing conversation, not sending topic. Backend should use existing topic.")
+            }
+
+            console.log("Debug - Final request body:", requestBody)
+
             const headers: Record<string, string> = { "Content-Type": "application/json" }
-            if (apiKey) {
+            // Only send API key if we have one and we're not running locally
+            if (apiKey && !config.apiUrl.includes('localhost')) {
                 headers["X-API-Key"] = apiKey
             }
 
@@ -160,15 +188,12 @@ function ChatContent() {
             // Update messages with the full conversation history
             setMessages(data.message)
 
-            // Extract topic and stance from the first bot message if available
-            if (data.message.length > 0) {
-                const firstBotMessage = data.message.find(m => m.role === "bot")
-                if (firstBotMessage && firstBotMessage.message.includes("Topic:")) {
-                    const topicMatch = firstBotMessage.message.match(/Topic:\s*([^\n]+)/)
-                    const stanceMatch = firstBotMessage.message.match(/Stance:\s*([^\n]+)/)
-                    if (topicMatch) setTopic(topicMatch[1].trim())
-                    if (stanceMatch) setStance(stanceMatch[1].trim())
-                }
+            // Set topic and stance from the response
+            if (data.topic) {
+                setTopic(data.topic)
+            }
+            if (data.stance) {
+                setStance(data.stance)
             }
 
         } catch (err) {
@@ -240,6 +265,7 @@ function ChatContent() {
                             {topic && (
                                 <div className="flex gap-2 items-center">
                                     <Badge variant="outline">Topic: {topic}</Badge>
+                                    {stance && <Badge variant="secondary">Bot Stance: {stance}</Badge>}
                                 </div>
                             )}
                         </CardHeader>
@@ -249,7 +275,8 @@ function ChatContent() {
                                     {messages.length === 0 && (
                                         <div className="text-center text-muted-foreground py-8">
                                             <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                            <p>Start a debate! Send your first message to begin.</p>
+                                            <p>Start a debate! Enter a topic above (optional) and send your first message to begin.</p>
+                                            <p className="text-sm mt-2">The bot will take the opposite stance to challenge your perspective.</p>
                                         </div>
                                     )}
                                     {messages.map((message, i) => (
@@ -287,6 +314,15 @@ function ChatContent() {
                                 </div>
                             )}
 
+
+                            {/* Topic input - only show for new conversations */}
+                            {!conversationId && (
+                                <div className="mb-4">
+                                    <p className="text-sm text-muted-foreground mb-2">
+                                        💡 <strong>Tip:</strong> Type your debate topic in the chat below (e.g., "Electric cars vs gas cars, I prefer electric cars")
+                                    </p>
+                                </div>
+                            )}
 
                             <form
                                 onSubmit={e => {
